@@ -119,7 +119,7 @@ isoSymm = (\left -> case left of (ab, ba) -> (ba, ab), \right -> case right of (
 -- https://en.wikipedia.org/wiki/Peano_axioms
 -- Either a b is a + b.
 -- (a, b) is a * b.
--- a -> b is b ^ a. Try counting (() -> Bool) and (Bool -> ())
+-- a -> b is b ^ a. Try counting (() -> Bool) and (Bool -> ()) 啊为什么,啊我好像懂了，是每个输入都可以对应b个输出，但是这不是一个函数，这只是解构了一下而已
 
 -- Algebraic data type got the name because
 -- it satisfies a lot of algebraic rules under isomorphism
@@ -142,27 +142,44 @@ isoPow = isoFunc
 
 -- a + b = b + a
 plusComm :: ISO (Either a b) (Either b a)
-plusComm = error "do plusComm"
+plusComm = (switch, switch) where
+  switch (Left l) = Right l
+  switch (Right r) = Left r
 
 -- a + b + c = a + (b + c)
 plusAssoc :: ISO (Either (Either a b) c) (Either a (Either b c))
-plusAssoc = error "do plusAssoc"
+plusAssoc = (l2r, r2l) where
+  l2r (Left (Left a)) = Left a
+  l2r (Left (Right b)) = Right (Left b)
+  l2r (Right c) = Right (Right c)
+  r2l (Left a) = (Left (Left a))
+  r2l (Right (Left b)) = (Left (Right b))
+  r2l (Right (Right c)) = (Right c)
 
 -- a * b = b * a
 multComm :: ISO (a, b) (b, a)
-multComm = error "do multComm"
+multComm = (switch, switch) where
+  switch (a, b) = (b, a)
 
 -- a * b * c = a * (b * c)
 multAssoc :: ISO ((a, b), c) (a, (b, c))
-multAssoc = error "do multAssoc"
+multAssoc = (l2r, r2l) where
+  l2r ((a, b), c) = (a, (b, c))
+  r2l (a, (b, c)) = ((a, b), c)
 
 -- dist :: a * (b + c) = a * b + a * c
 dist :: ISO (a, (Either b c)) (Either (a, b) (a, c))
-dist = error "do dist"
+dist = (l2r, r2l) where
+  l2r (a, Left b) = Left(a, b)
+  l2r (a, Right c) = Right(a, c)
+  r2l (Left(a, b)) = (a, Left b)
+  r2l (Right(a, c)) = (a, Right c)
 
 -- (c ^ b) ^ a = c ^ (a * b)
 curryISO :: ISO (a -> b -> c) ((a, b) -> c)
-curryISO = error "do curryISO"
+curryISO = (l2r, r2l) where
+  l2r a_b_c = \(a, b) -> a_b_c a b
+  r2l ab_c = \a b -> ab_c (a, b)
 
 -- 1 = S O (we are using peano arithmetic)
 -- https://en.wikipedia.org/wiki/Peano_axioms
@@ -171,18 +188,28 @@ one = (const Nothing, const ())
 
 -- 2 = S (S O)
 two :: ISO Bool (Maybe (Maybe Void))
-two = error "do two"
+two = (l2r, r2l) where
+  l2r True = Nothing
+  l2r False = Just(Nothing)
+  r2l Nothing = True
+  r2l (Just(Nothing)) = False
 
 -- O + b = b
 plusO :: ISO (Either Void b) b
 plusO = (left, Right)
   where
     left (Left  x) = absurd x -- absurd :: Void -> a
-    left (Right x) = error "do plusO"
+    left (Right x) = x
 
--- S a + b = S (a + b)
+-- S a + b = S (a + b) 想起了被 Nat 支配的恐惧(
 plusS :: ISO (Either (Maybe a) b) (Maybe (Either a b))
-plusS = error "do plusS"
+plusS = (l2r, r2l) where
+  l2r (Left Nothing) = Nothing
+  l2r (Left (Just a)) = Just(Left a)
+  l2r (Right b) = Just(Right b)
+  r2l Nothing = Left Nothing
+  r2l (Just(Left a)) = Left (Just a)
+  r2l (Just(Right b)) = Right b
 
 -- 1 + b = S b
 plusSO :: ISO (Either () b) (Maybe b)
@@ -190,34 +217,48 @@ plusSO = isoPlus one refl `trans` plusS `trans` isoS plusO
 
 -- O * a = O
 multO :: ISO (Void, a) Void
-multO = error "do multO"
+multO = (l2r, absurd) where
+  l2r (x, a) = x
 
 -- S a * b = b + a * b
 multS :: ISO (Maybe a, b) (Either b (a, b))
-multS = error "do multS"
+multS = (l2r, r2l) where
+  l2r (Nothing, b) = Left b
+  l2r (Just a, b) = Right (a, b)
+  r2l (Left b) = (Nothing, b)
+  r2l (Right (a, b)) = (Just a, b)
 
 -- 1 * b = b
 multSO :: ISO ((), b) b
 multSO =
-  isoProd one refl `trans`
-    multS `trans`
+  isoProd one refl `trans`  -- (Maybe Void, b) = (Maybe Void, b)
+    multS `trans`           -- (S 0, b) = b + 0 * b
     isoPlus refl multO `trans`
     plusComm `trans`
     plusO
 
 -- a ^ O = 1
 powO :: ISO (Void -> a) ()
-powO = error "do powO"
+powO = (const (), const absurd)
 
 -- a ^ (S b) = a * (a ^ b)
 powS :: ISO (Maybe b -> a) (a, b -> a)
-powS = error "do powS"
+powS = (l2r, r2l) where
+  l2r maybeb_a = (maybeb_a Nothing, \b -> maybeb_a $ Just b)
+  r2l (a, ba) = (\mb -> case mb of
+                        Nothing -> a
+                        Just b -> ba b)
 
 -- a ^ 1 = a
 -- Go the hard way (like multSO, plusSO)
 -- to prove that you really get what is going on!
-powSO :: ISO (() -> a) a
-powSO = error "do powSO" --_ `trans` powS `trans` _
+powSO :: ISO (() -> a) a -- (() -> a) = (a, Void -> a)
+powSO =
+  isoPow one refl `trans`
+    powS `trans`
+    isoProd refl powO `trans`
+    multComm `trans` multSO
+
 -- Here's a trick:
 -- replace undefined with the rhs of the comment on previous line
 -- When you're not sure what to fill in for a value,
