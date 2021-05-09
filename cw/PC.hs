@@ -133,8 +133,16 @@ instance Nat Scott where
   -- Other operation on Scott numeral is sort of boring,
   -- So we implement it using operation on Peano.
   -- You shouldnt do this - I had handled all the boring case for you.
-  zero = Scott (\a f -> f zero)
-  successor scott = Scott $ runScott scott
+  zero = Scott (\a f -> a)
+  successor scott = Scott (\a f -> f scott)
+  nat a f n = runScott' a (\scott -> nat (f scott) f scott) n where
+    runScott' :: forall a. a -> (Scott -> a) -> Scott -> a
+    runScott' z s (Scott f) = f z s
+
+  iter a f n = runScott' a (\scott -> iter (f a) f scott) n where
+    runScott' :: forall a. a -> (Scott -> a) -> Scott -> a
+    runScott' z s (Scott f) = f z s
+
   plus = substR (liftISO2 isoP) plus
   minus = substR (liftISO2 isoP) minus
   mult = substR (liftISO2 isoP) mult
