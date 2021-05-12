@@ -81,16 +81,17 @@ instance Nat Peano where
   iter a f O = a
   iter a f (S k) = iter (f a) f k
 
-  plus zero m = m
+  plus O m = m
   plus (S k) m = S $ plus k m
 
-  minus zero m = zero
+  minus O m = zero
+  minus n O = n
   minus (S k) (S m) = minus k m
 
-  mult zero m = zero
+  mult O m = zero
   mult (S k) m = plus m $ mult k m
 
-  pow k zero = S zero
+  pow k O = S zero
   pow k (S m) = mult k $ pow k m
 
 -- Peano is very similar to a basic data type in Haskell - List!
@@ -117,6 +118,7 @@ instance Nat [()] where -- type: list of unit
   plus = (++)
 
   minus [] m = []
+  minus n [] = n
   minus (_:k) (_:m) = minus k m
 
   mult [] m = zero
@@ -136,7 +138,7 @@ instance Nat Scott where
   zero = Scott (\a f -> a)
   successor scott = Scott (\a f -> f scott)
   nat a f n = runScott' a (\scott -> nat (f scott) f scott) n where
-    runScott' :: forall a. a -> (Scott -> a) -> Scott -> a
+    runScott' :: forall a. a -> (Scott -> a) -> Scott -> a -- runScott' is a pattern matching function
     runScott' z s (Scott f) = f z s
 
   iter a f n = runScott' a (\scott -> iter (f a) f scott) n where
@@ -156,3 +158,10 @@ instance Nat Church where
   -- So plus should not use successor,
   -- mult should not use plus,
   -- exp should not use mult.
+  zero = Church (\f a -> a)
+  successor (Church ff) = Church (\f -> f . ff f)
+  -- nat a f (Church ff) = 
+  -- iter a f (Church ff) = 
+  plus (Church f1) (Church f2) = Church (\f a -> f1 f (f2 f a))
+  -- minus (Church f1) (Church f2) =
+  mult (Church f1) (Church f2) = Church (\f -> (f1. f2) f)
