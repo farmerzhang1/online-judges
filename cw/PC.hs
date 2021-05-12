@@ -22,7 +22,7 @@ substR :: ISO a b -> (b -> a)
 substR = snd
 
 liftISO2 :: ISO a b -> ISO (a -> a -> a) (b -> b -> b)
-liftISO2 = error "do liftISO2"
+liftISO2 (ab, ba) = (\f b1 b2 -> ab $ f (ba b1) (ba b2), \f a1 a2 -> ba $ f (ab a1) (ab a2))
 
 -- A Natural Number is either Zero,
 -- or a Successor (1 +) of Natural Number.
