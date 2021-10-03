@@ -159,9 +159,21 @@ instance Nat Church where
   -- mult should not use plus,
   -- exp should not use mult.
   zero = Church (\f a -> a)
-  successor (Church ff) = Church (\f -> f . ff f)
-  -- nat a f (Church ff) = 
-  -- iter a f (Church ff) = 
+  successor (Church ff) = Church (\f a-> f (ff f a))
+  nat :: a -> (Church -> a) -> Church -> a
+  nat a f (Church ff) = a
+  iter a f (Church ff) = a
   plus (Church f1) (Church f2) = Church (\f a -> f1 f (f2 f a))
-  -- minus (Church f1) (Church f2) =
-  mult (Church f1) (Church f2) = Church (\f -> (f1. f2) f)
+  -- minus (Church f1) (Church f2) = Church (\f a -> f2 (\n -> runChurch (pred1 (Church n)) f2)) -- 又晕了
+  mult (Church f1) (Church f2) = Church (f1. f2)
+
+-- predcessor: https://en.wikipedia.org/wiki/Church_encoding
+pred1 :: Church -> Church
+pred1 (Church n) = Church (\f a -> extract (n (\g h -> h (g f)) (const a))) where
+  extract k = k id
+
+predChurch :: forall a. ((a -> a) -> a -> a) -> (a -> a) -> a -> a
+predChurch n f a1 = extract (n (\g h -> h (g f)) (const a1)) where
+  extract k = k id
+
+predTest n = runChurch $ pred1 (Church n)
