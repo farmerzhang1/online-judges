@@ -8,7 +8,7 @@ pairS :: a -> b -> PairS a b
 pairS a b = PairS (\p -> p a b)
 
 fstS :: PairS a b -> a
-fstS (PairS p) = p (\x _ -> x)
+fstS (PairS p) = p const
 
 sndS :: PairS a b -> b
 sndS (PairS p) = p (\_ y -> y)
@@ -29,7 +29,7 @@ unnumS' :: (NumS -> r) -> r -> NumS -> r
 unnumS' s z (NumS f) = f s z
 
 isZero :: NumS -> Bool
-isZero = unnumS' (\_ -> False) True --(NumS f) = f (const False) True
+isZero = unnumS' (const False) True --(NumS f) = f (const False) True
 
 addS :: NumS -> NumS -> NumS
 addS n m = unnumS' (\s -> succS (addS s m)) m n -- holy shit!!! it's too cool
