@@ -1,5 +1,7 @@
-{-# LANGUAGE TypeOperators, DeriveFunctor, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, OverlappingInstances #-}
+{-# LANGUAGE TypeOperators, DeriveFunctor, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
 module ALaCarte where
+-- https://www.codewars.com/kata/592a1c156d6c5a56c800001f/train/haskell
 
 -- Definitions
 data Expr f = In (f (Expr f))
@@ -31,8 +33,9 @@ instance (Functor f, Functor g) => Functor (f :+: g) where
 foldExpr :: Functor f => (f a -> a) -> Expr f -> a
 foldExpr f (In e) = undefined
 
--- Now we can write a simple interpreter. Your definitions should correspond
--- closely with the definition for the old interpreter given in the description.
+-- Now we can write a simple interpreter.
+-- Your definitions should correspond closely with the definition
+-- for the old interpreter given in the description.
 
 class Functor f => Eval f where
   evalAlgebra :: f Int -> Int
@@ -46,13 +49,13 @@ instance Eval Add where
 instance (Eval f, Eval g) => Eval (f :+: g) where
   evalAlgebra (Inl l) = undefined
   evalAlgebra (Inr r) = undefined
-
+  
 eval :: Eval f => Expr f -> Int
 eval = undefined
 
 -- HINT: Use foldExpr
 
--- The problem is that it is painful to write expressions.
+-- The problem is that it is painful to write expressions. 
 -- This is how you would write 5+6
 
 pain :: Expr (Lit :+: Add)
@@ -60,11 +63,14 @@ pain = In (Inr (Add (In (Inl (Lit 5))) (In (Inl (Lit 6)))))
 
 -- Injection
 -- To ease writing expressions, we will now define a type class
--- which will choose the right constructors for us. Think of the sub :<: sup to say that
--- sub is a subtype of sup.
+-- which will choose the right constructors for us. 
+-- Think of the sub :<: sup to say that
+-- sub is a subtype of sup. 
 
--- It might also help to think of :+: as the cons operator for a type level list.
--- Then the type class can be viewed as searching for the correct injection by
+-- It might also help to think of :+:
+-- as the cons operator for a type level list.
+-- Then the type class can be viewed as 
+-- searching for the correct injection by
 -- searching through the list for the correct type.
 
 class (Functor sub, Functor sup) => sub :<: sup where
@@ -75,14 +81,17 @@ class (Functor sub, Functor sup) => sub :<: sup where
 instance Functor f => f :<: f where
   inj = undefined
 
-instance (Functor f, Functor g) =>  f :<: (f :+: g) where
+instance {-# OVERLAPS #-} (Functor f, Functor g) =>
+  f :<: (f :+: g) where
   inj = undefined
 
-instance (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
+instance (Functor f, Functor g, Functor h, f :<: g) => 
+  f :<: (h :+: g) where
   inj = undefined
-
--- Note: This part requires overlapping instances, this is safe as long as :+: associates to the right.
--- A modern implementation would use type families.
+  
+-- Note: overlapping instances is safe
+-- as long as :+: associates to the right.
+-- A modern implementation would use type families. 
 
 -- Then we can use this type class to write smart constructors.
 
@@ -108,9 +117,9 @@ expr = add (lit 5) (lit 6)
 data Mult a = Mult a a deriving Functor
 
 instance Eval Mult where
-  ??
+  -- TODO
 
-mult :: ??
+mult :: Any -- TODO
 mult e1 e2 = undefined
 
 -- We must specify the type of expressions
@@ -122,7 +131,7 @@ expr2 = mult (add (lit 5) (lit 6)) (lit 2)
 
 -- Adding a new interpreter
 -- To add a pretty printer, we define a new type class in much the
--- same way as for the first interpreter.
+-- same way as for the first interpreter. 
 
 class Functor f => Pretty f where
   ??
@@ -141,7 +150,7 @@ instance Pretty Mult where
 
 instance (Pretty f, Pretty g) => Pretty (f :+: g) where
   ??
-
+ 
 -- > pretty expr1
 -- "(5+6)"
 -- > pretty expr2
