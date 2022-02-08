@@ -52,6 +52,7 @@ _ !? n | n < 0 = Nothing
 get :: Maze -> Loc -> Maybe Char
 get m (Loc x y) = m !? x >>= (!? y)
 
+-- we can implement a queue
 bfs :: Maze -> [Position] -> Position -> Position -> [Position] -> M.Map Position Char -> Maybe [Char]
 bfs m (top : queue) start target visited bfsTree
   | target `elem` poses = buildRoute (foldr (uncurry M.insert) bfsTree ns) target
@@ -67,11 +68,11 @@ bfs m (top : queue) start target visited bfsTree
     ns = neighbors m (top : visited) top
     poses = map fst ns
     buildRoute :: M.Map Position Char -> Position -> Maybe [Char]
-    buildRoute map p
+    buildRoute m p
       | p == start = Just []
       | otherwise = do
-        c <- M.lookup p map
-        rest <- buildRoute map (op (inverse c) p)
+        c <- M.lookup p m
+        rest <- buildRoute m (op (inverse c) p)
         return (c : rest)
 bfs maze [] _ _ _ _ = error (show maze)
 
